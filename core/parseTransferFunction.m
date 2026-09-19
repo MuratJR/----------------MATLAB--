@@ -88,20 +88,42 @@ switch lower(params.mode)
             % 4. 二阶微分环节 (支持多组，分号分隔)
             count_osc_lead = 0;
             if isfield(params, 'hasOscLead') && params.hasOscLead
+                osc_lead_mode = '标准型 [ζ, ωn]';
+                if isfield(params, 'oscLeadMode'), osc_lead_mode = params.oscLeadMode; end
                 cleanOscLead = regexprep(char(params.oscLeadVals), '[\[\]\(\)]', ' ');
                 rows_lead = strsplit(cleanOscLead, ';');
                 for i = 1:length(rows_lead)
                     nums = str2num(rows_lead{i}); %#ok<ST2NM>
-                    if length(nums) == 2
-                        count_osc_lead = count_osc_lead + 1;
-                        zeta_z = nums(1); wn_z = nums(2);
-                        poly_l = [1, 2*zeta_z*wn_z, wn_z^2];
-                        sys = sys * tf(poly_l, [wn_z^2]);
-                        num_latex_terms{end+1} = sprintf('(s^2 %+g s + %g)', 2*zeta_z*wn_z, wn_z^2); %#ok<AGROW>
-                    elseif length(nums) == 3
-                        count_osc_lead = count_osc_lead + 1;
-                        sys = sys * tf(nums, [nums(3)]);
-                        num_latex_terms{end+1} = sprintf('(%gs^2 %+g s + %g)', nums(1), nums(2), nums(3)); %#ok<AGROW>
+                    if isempty(nums), continue; end
+                    if contains(osc_lead_mode, '多项式')
+                        if length(nums) == 2, nums = [1, nums]; end
+                        if length(nums) >= 3
+                            count_osc_lead = count_osc_lead + 1;
+                            c_norm = ternary(nums(3) ~= 0, nums(3), 1);
+                            sys = sys * tf(nums(1:3), [c_norm]);
+                            if nums(1) == 1
+                                num_latex_terms{end+1} = sprintf('(s^2 %+g s + %g)', nums(2), nums(3)); %#ok<AGROW>
+                            else
+                                num_latex_terms{end+1} = sprintf('(%gs^2 %+g s + %g)', nums(1), nums(2), nums(3)); %#ok<AGROW>
+                            end
+                        end
+                    else % 标准型 [ζ, ωn]
+                        if length(nums) == 2
+                            count_osc_lead = count_osc_lead + 1;
+                            zeta_z = nums(1); wn_z = nums(2);
+                            poly_l = [1, 2*zeta_z*wn_z, wn_z^2];
+                            sys = sys * tf(poly_l, [wn_z^2]);
+                            num_latex_terms{end+1} = sprintf('(s^2 %+g s + %g)', 2*zeta_z*wn_z, wn_z^2); %#ok<AGROW>
+                        elseif length(nums) >= 3
+                            count_osc_lead = count_osc_lead + 1;
+                            c_norm = ternary(nums(3) ~= 0, nums(3), 1);
+                            sys = sys * tf(nums(1:3), [c_norm]);
+                            if nums(1) == 1
+                                num_latex_terms{end+1} = sprintf('(s^2 %+g s + %g)', nums(2), nums(3)); %#ok<AGROW>
+                            else
+                                num_latex_terms{end+1} = sprintf('(%gs^2 %+g s + %g)', nums(1), nums(2), nums(3)); %#ok<AGROW>
+                            end
+                        end
                     end
                 end
             end
@@ -130,20 +152,42 @@ switch lower(params.mode)
             % 6. 二阶振荡环节 (支持多组，分号分隔)
             count_osc = 0;
             if isfield(params, 'hasOsc') && params.hasOsc
+                osc_mode = '标准型 [ζ, ωn]';
+                if isfield(params, 'oscMode'), osc_mode = params.oscMode; end
                 cleanOsc = regexprep(char(params.oscVals), '[\[\]\(\)]', ' ');
                 rows_osc = strsplit(cleanOsc, ';');
                 for i = 1:length(rows_osc)
                     nums = str2num(rows_osc{i}); %#ok<ST2NM>
-                    if length(nums) == 2
-                        count_osc = count_osc + 1;
-                        zeta_o = nums(1); wn_o = nums(2);
-                        poly_o = [1, 2*zeta_o*wn_o, wn_o^2];
-                        sys = sys / tf(poly_o, [wn_o^2]);
-                        den_latex_terms{end+1} = sprintf('(s^2 %+g s + %g)', 2*zeta_o*wn_o, wn_o^2); %#ok<AGROW>
-                    elseif length(nums) == 3
-                        count_osc = count_osc + 1;
-                        sys = sys / tf(nums, [nums(3)]);
-                        den_latex_terms{end+1} = sprintf('(%gs^2 %+g s + %g)', nums(1), nums(2), nums(3)); %#ok<AGROW>
+                    if isempty(nums), continue; end
+                    if contains(osc_mode, '多项式')
+                        if length(nums) == 2, nums = [1, nums]; end
+                        if length(nums) >= 3
+                            count_osc = count_osc + 1;
+                            c_norm = ternary(nums(3) ~= 0, nums(3), 1);
+                            sys = sys / tf(nums(1:3), [c_norm]);
+                            if nums(1) == 1
+                                den_latex_terms{end+1} = sprintf('(s^2 %+g s + %g)', nums(2), nums(3)); %#ok<AGROW>
+                            else
+                                den_latex_terms{end+1} = sprintf('(%gs^2 %+g s + %g)', nums(1), nums(2), nums(3)); %#ok<AGROW>
+                            end
+                        end
+                    else % 标准型 [ζ, ωn]
+                        if length(nums) == 2
+                            count_osc = count_osc + 1;
+                            zeta_o = nums(1); wn_o = nums(2);
+                            poly_o = [1, 2*zeta_o*wn_o, wn_o^2];
+                            sys = sys / tf(poly_o, [wn_o^2]);
+                            den_latex_terms{end+1} = sprintf('(s^2 %+g s + %g)', 2*zeta_o*wn_o, wn_o^2); %#ok<AGROW>
+                        elseif length(nums) >= 3
+                            count_osc = count_osc + 1;
+                            c_norm = ternary(nums(3) ~= 0, nums(3), 1);
+                            sys = sys / tf(nums(1:3), [c_norm]);
+                            if nums(1) == 1
+                                den_latex_terms{end+1} = sprintf('(s^2 %+g s + %g)', nums(2), nums(3)); %#ok<AGROW>
+                            else
+                                den_latex_terms{end+1} = sprintf('(%gs^2 %+g s + %g)', nums(1), nums(2), nums(3)); %#ok<AGROW>
+                            end
+                        end
                     end
                 end
             end

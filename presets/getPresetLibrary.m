@@ -29,8 +29,10 @@ cfg.hasLead = false;
 cfg.leadMode = '首1型 [零点z]';
 cfg.leadVals = '[]';
 cfg.hasOsc = false;
+cfg.oscMode = '标准型 [ζ, ωn]';
 cfg.oscVals = '';
 cfg.hasOscLead = false;
+cfg.oscLeadMode = '标准型 [ζ, ωn]';
 cfg.oscLeadVals = '';
 cfg.hasDelay = false;
 cfg.delayVal = 0.1;
@@ -42,6 +44,7 @@ switch query
     case '案例1: 典型二阶欠阻尼系统 [16 / (s^2 + 4s + 16)]'
         cfg.kGain = 1.0;
         cfg.hasOsc = true;
+        cfg.oscMode = '标准型 [ζ, ωn]';
         cfg.oscVals = '0.5, 4';
         cfg.kMax = 20;
         cfg.kDefault = 1.0;
@@ -55,6 +58,7 @@ switch query
         cfg.lagMode = '首1型 [极点p]';
         cfg.lagVals = '[-1, 4]';
         cfg.hasOsc = true;
+        cfg.oscMode = '标准型 [ζ, ωn]';
         cfg.oscVals = '0.5, 4';
         cfg.kMax = 60;
         cfg.kDefault = 28.0;
@@ -107,6 +111,7 @@ switch query
         cfg.lagMode = '首1型 [极点p]';
         cfg.lagVals = '[10, 100]';
         cfg.hasOsc = true;
+        cfg.oscMode = '标准型 [ζ, ωn]';
         cfg.oscVals = '0.3, 2.5';
         cfg.kMax = 500;
         cfg.kDefault = 120.0;

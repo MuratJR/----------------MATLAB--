@@ -59,7 +59,7 @@ inputTabGroup = uitabgroup(leftLayout);
 % Tab A: 典型环节串联积 (选配，支持任意多个环节)
 tabComp = uitab(inputTabGroup, 'Title', '🧩 典型环节积 (多环节选配)');
 compLayout = uigridlayout(tabComp, [8, 3]);
-compLayout.ColumnWidth = {130, 85, '1x'};
+compLayout.ColumnWidth = {120, 100, '1x'};
 compLayout.RowHeight = {26, 26, 26, 26, 26, 26, 26, 24};
 compLayout.Padding = [8, 6, 8, 6];
 compLayout.RowSpacing = 4;
@@ -91,15 +91,17 @@ leadValsField = uieditfield(compLayout, 'text', 'Value', '[1]', ...
 
 % (5) 二阶振荡环节
 cbOsc = uicheckbox(compLayout, 'Text', '⑤ 二阶振荡环节', 'Value', true, 'FontWeight', 'bold', 'FontSize', 11);
-uilabel(compLayout, 'Text', '多组分号隔开:', 'HorizontalAlignment', 'right', 'FontSize', 9, 'FontColor', [0.35, 0.35, 0.35]);
+oscModeDropDown = uidropdown(compLayout, 'Items', {'标准型 [ζ, ωn]', '多项式 [a, b, c]'}, ...
+    'Value', '标准型 [ζ, ωn]', 'FontSize', 10);
 oscValsField = uieditfield(compLayout, 'text', 'Value', '0.5, 4', ...
-    'Placeholder', '如 [ζ, ωn] 或多项式 [a, b, c]', 'FontSize', 10);
+    'Placeholder', '阻尼比 ζ, 自然频率 ωn，如 [0.5, 4]', 'FontSize', 10);
 
 % (6) 二阶微分环节
 cbOscLead = uicheckbox(compLayout, 'Text', '⑥ 二阶微分环节', 'Value', false, 'FontWeight', 'bold', 'FontSize', 11);
-uilabel(compLayout, 'Text', '多组分号隔开:', 'HorizontalAlignment', 'right', 'FontSize', 9, 'FontColor', [0.35, 0.35, 0.35]);
+oscLeadModeDropDown = uidropdown(compLayout, 'Items', {'标准型 [ζ, ωn]', '多项式 [a, b, c]'}, ...
+    'Value', '标准型 [ζ, ωn]', 'FontSize', 10, 'Enable', 'off');
 oscLeadValsField = uieditfield(compLayout, 'text', 'Value', '0.7, 2', ...
-    'Placeholder', '如 [ζ, ωn] 或多项式 [a, b, c]', 'FontSize', 10, 'Enable', 'off');
+    'Placeholder', '阻尼比 ζ, 自然频率 ωn，如 [0.7, 2]', 'FontSize', 10, 'Enable', 'off');
 
 % (7) 纯延迟环节 e^(-tau*s)
 cbDelay = uicheckbox(compLayout, 'Text', '⑦ 纯延迟环节 e^(-τs)', 'Value', false, 'FontWeight', 'bold', 'FontSize', 11);
@@ -309,8 +311,10 @@ appData.nyquistOmegaRange = 'full';
             params.leadMode = leadModeDropDown.Value;
             params.leadVals = leadValsField.Value;
             params.hasOsc = cbOsc.Value;
+            params.oscMode = oscModeDropDown.Value;
             params.oscVals = oscValsField.Value;
             params.hasOscLead = cbOscLead.Value;
+            params.oscLeadMode = oscLeadModeDropDown.Value;
             params.oscLeadVals = oscLeadValsField.Value;
             params.hasDelay = cbDelay.Value;
             params.delayVal = delayValField.Value;
@@ -439,8 +443,18 @@ presetDropDown.ValueChangedFcn = @(src, event) onPresetSelected(src.Value);
         leadModeDropDown.Value = cfg.leadMode;
         leadValsField.Value = cfg.leadVals;
         cbOsc.Value = cfg.hasOsc;
+        if isfield(cfg, 'oscMode')
+            oscModeDropDown.Value = cfg.oscMode;
+        else
+            oscModeDropDown.Value = '标准型 [ζ, ωn]';
+        end
         oscValsField.Value = cfg.oscVals;
         cbOscLead.Value = cfg.hasOscLead;
+        if isfield(cfg, 'oscLeadMode')
+            oscLeadModeDropDown.Value = cfg.oscLeadMode;
+        else
+            oscLeadModeDropDown.Value = '标准型 [ζ, ωn]';
+        end
         oscLeadValsField.Value = cfg.oscLeadVals;
         cbDelay.Value = cfg.hasDelay;
         delayValField.Value = cfg.delayVal;
@@ -456,22 +470,63 @@ presetDropDown.ValueChangedFcn = @(src, event) onPresetSelected(src.Value);
         onAnalyzeClicked();
     end
 
-cbIntegral.ValueChangedFcn = @(s, e) updateComponentControlsEnable();
-cbLag.ValueChangedFcn      = @(s, e) updateComponentControlsEnable();
-cbLead.ValueChangedFcn     = @(s, e) updateComponentControlsEnable();
-cbOsc.ValueChangedFcn      = @(s, e) updateComponentControlsEnable();
-cbOscLead.ValueChangedFcn  = @(s, e) updateComponentControlsEnable();
-cbDelay.ValueChangedFcn    = @(s, e) updateComponentControlsEnable();
+cbIntegral.ValueChangedFcn          = @(s, e) updateComponentControlsEnable();
+cbLag.ValueChangedFcn               = @(s, e) updateComponentControlsEnable();
+cbLead.ValueChangedFcn              = @(s, e) updateComponentControlsEnable();
+cbOsc.ValueChangedFcn               = @(s, e) updateComponentControlsEnable();
+cbOscLead.ValueChangedFcn           = @(s, e) updateComponentControlsEnable();
+cbDelay.ValueChangedFcn             = @(s, e) updateComponentControlsEnable();
+
+lagModeDropDown.ValueChangedFcn     = @(s, e) onAnalyzeClicked();
+leadModeDropDown.ValueChangedFcn    = @(s, e) onAnalyzeClicked();
+oscModeDropDown.ValueChangedFcn     = @(s, e) onOscModeChanged(s.Value);
+oscLeadModeDropDown.ValueChangedFcn = @(s, e) onOscLeadModeChanged(s.Value);
+
+    function onOscModeChanged(modeVal)
+        if contains(modeVal, '多项式')
+            oscValsField.Placeholder = '多项式系数 [a, b, c]，如 [1, 4, 16]';
+            if strcmp(strtrim(oscValsField.Value), '0.5, 4')
+                oscValsField.Value = '1, 4, 16';
+            end
+        else
+            oscValsField.Placeholder = '阻尼比 ζ, 自然频率 ωn，如 [0.5, 4]';
+            if strcmp(strtrim(oscValsField.Value), '1, 4, 16')
+                oscValsField.Value = '0.5, 4';
+            end
+        end
+        if cbOsc.Value
+            onAnalyzeClicked();
+        end
+    end
+
+    function onOscLeadModeChanged(modeVal)
+        if contains(modeVal, '多项式')
+            oscLeadValsField.Placeholder = '多项式系数 [a, b, c]，如 [1, 2.8, 4]';
+            if strcmp(strtrim(oscLeadValsField.Value), '0.7, 2')
+                oscLeadValsField.Value = '1, 2.8, 4';
+            end
+        else
+            oscLeadValsField.Placeholder = '阻尼比 ζ, 自然频率 ωn，如 [0.7, 2]';
+            if strcmp(strtrim(oscLeadValsField.Value), '1, 2.8, 4')
+                oscLeadValsField.Value = '0.7, 2';
+            end
+        end
+        if cbOscLead.Value
+            onAnalyzeClicked();
+        end
+    end
 
     function updateComponentControlsEnable()
-        nuDropDown.Enable       = ternary(cbIntegral.Value, 'on', 'off');
-        lagModeDropDown.Enable  = ternary(cbLag.Value, 'on', 'off');
-        lagValsField.Enable     = ternary(cbLag.Value, 'on', 'off');
-        leadModeDropDown.Enable = ternary(cbLead.Value, 'on', 'off');
-        leadValsField.Enable    = ternary(cbLead.Value, 'on', 'off');
-        oscValsField.Enable     = ternary(cbOsc.Value, 'on', 'off');
-        oscLeadValsField.Enable = ternary(cbOscLead.Value, 'on', 'off');
-        delayValField.Enable    = ternary(cbDelay.Value, 'on', 'off');
+        nuDropDown.Enable          = ternary(cbIntegral.Value, 'on', 'off');
+        lagModeDropDown.Enable     = ternary(cbLag.Value, 'on', 'off');
+        lagValsField.Enable        = ternary(cbLag.Value, 'on', 'off');
+        leadModeDropDown.Enable    = ternary(cbLead.Value, 'on', 'off');
+        leadValsField.Enable       = ternary(cbLead.Value, 'on', 'off');
+        oscModeDropDown.Enable     = ternary(cbOsc.Value, 'on', 'off');
+        oscValsField.Enable        = ternary(cbOsc.Value, 'on', 'off');
+        oscLeadModeDropDown.Enable = ternary(cbOscLead.Value, 'on', 'off');
+        oscLeadValsField.Enable    = ternary(cbOscLead.Value, 'on', 'off');
+        delayValField.Enable       = ternary(cbDelay.Value, 'on', 'off');
     end
 
 inputTabGroup.SelectionChangedFcn = @(s, e) onAnalyzeClicked();

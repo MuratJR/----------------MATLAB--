@@ -212,8 +212,31 @@ grid(axRL, 'on');
 
 % Tab 2: Bode 对数频率特性
 tabBode = uitab(rightTabGroup, 'Title', '📊 对数频率特性 (Bode)');
-layoutBode = uigridlayout(tabBode, [1, 1]);
-layoutBode.Padding = [10, 10, 10, 10];
+layoutBode = uigridlayout(tabBode, [2, 1]);
+layoutBode.RowHeight = {30, '1x'};
+layoutBode.Padding = [10, 8, 10, 8];
+layoutBode.RowSpacing = 6;
+
+% 顶部开环/闭环切换工具条
+bodeToolBar = uigridlayout(layoutBode, [1, 4]);
+bodeToolBar.ColumnWidth = {75, 175, 175, '1x'};
+bodeToolBar.Padding = [0, 0, 0, 0];
+
+uilabel(bodeToolBar, 'Text', '特性类型:', 'FontWeight', 'bold', 'FontSize', 11, ...
+    'HorizontalAlignment', 'right', 'FontColor', [0.15, 0.25, 0.45]);
+
+btnBodeOpen = uibutton(bodeToolBar, 'Text', '🔓 开环 Bode 图 [G(s)H(s)]', 'FontWeight', 'bold', ...
+    'BackgroundColor', [0.90, 0.94, 1.0], 'FontColor', [0.1, 0.25, 0.6], ...
+    'ButtonPushedFcn', @(btn, event) setBodeMode('open'));
+
+btnBodeClosed = uibutton(bodeToolBar, 'Text', '🔒 闭环 Bode 图 [Φ(s)]', 'FontWeight', 'normal', ...
+    'BackgroundColor', [0.96, 0.96, 0.96], 'FontColor', [0.3, 0.3, 0.3], ...
+    'ButtonPushedFcn', @(btn, event) setBodeMode('closed'));
+
+lblBodeInfo = uilabel(bodeToolBar, ...
+    'Text', '💡 标注: 开环截止频率 ωc、相位裕度 γ(Pm) 与幅值裕度 Kg(Gm)', ...
+    'FontSize', 10, 'FontColor', [0.35, 0.4, 0.5], 'HorizontalAlignment', 'left');
+
 axBode = uiaxes(layoutBode);
 grid(axBode, 'on');
 
@@ -295,6 +318,7 @@ appData.factoredLatex = '';
 appData.nyquistViewMode = 'auto';
 appData.showNyquistUnitCircle = true;
 appData.nyquistOmegaRange = 'full';
+appData.bodeMode = 'open';
 
 %% 5. 核心逻辑调度控制
     function [sys, num, den, factoredLatex, errMsg] = parseCurrentInput()
@@ -379,8 +403,8 @@ appData.nyquistOmegaRange = 'full';
         appData.polePlotHandle = renderRootLocus(axRL, G_rl, num, den, K, isNeg, ...
             cl_poles, appData.showSGrid, fullRedraw, appData.polePlotHandle);
         
-        % 2. 绘制 Bode 图
-        [Gm, Pm, Wcg, Wcp] = renderBodePlot(axBode, G_open, K);
+        % 2. 绘制 Bode 图 (支持开环/闭环切换)
+        [Gm, Pm, Wcg, Wcp] = renderBodePlot(axBode, G_open, sys_cl, K, appData.bodeMode);
         
         % 3. 绘制 Nyquist 图与稳定判据
         nyquistAnalysisStr = renderNyquistPlot(axNyquist, G_open, den, cl_poles, isNeg, ...
@@ -615,6 +639,28 @@ btnSGrid.ButtonPushedFcn = @(src, event) onSGridToggled();
             appData.nyquistOmegaRange = 'neg';
         else
             appData.nyquistOmegaRange = 'full';
+        end
+        updateAllPlots(false);
+    end
+
+    function setBodeMode(mode)
+        appData.bodeMode = mode;
+        if strcmp(mode, 'open')
+            btnBodeOpen.FontWeight = 'bold';
+            btnBodeOpen.BackgroundColor = [0.90, 0.94, 1.0];
+            btnBodeOpen.FontColor = [0.1, 0.25, 0.6];
+            btnBodeClosed.FontWeight = 'normal';
+            btnBodeClosed.BackgroundColor = [0.96, 0.96, 0.96];
+            btnBodeClosed.FontColor = [0.3, 0.3, 0.3];
+            lblBodeInfo.Text = '💡 标注: 开环截止频率 ωc、相位裕度 γ(Pm) 与幅值裕度 Kg(Gm)';
+        else
+            btnBodeOpen.FontWeight = 'normal';
+            btnBodeOpen.BackgroundColor = [0.96, 0.96, 0.96];
+            btnBodeOpen.FontColor = [0.3, 0.3, 0.3];
+            btnBodeClosed.FontWeight = 'bold';
+            btnBodeClosed.BackgroundColor = [0.90, 0.94, 1.0];
+            btnBodeClosed.FontColor = [0.1, 0.25, 0.6];
+            lblBodeInfo.Text = '💡 标注: 闭环截止频率/带宽 ωb、谐振峰值 Mr 与谐振频率 ωr';
         end
         updateAllPlots(false);
     end
